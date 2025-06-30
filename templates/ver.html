@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{{ titulo }}</title>
+  </head>
+  <body>
+    <h1>{{ titulo }}</h1>
+    <video id="video" width="720" controls></video>
+    <p>
+      En esta demo, se logro reproducir un video segmentado alojado en
+      CloudFire, donde el audio y vido estan separados y el reproductor shaka
+      los junta
+    </p>
+    <p>
+      Me encuentro trabajando en funciones nuevas como los subtitulos
+      <samp> (Ya estan en el R2)</samp> y el cambio de idioma, asi como la
+      opcion de adelantar video
+    </p>
+
+    <script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.compiled.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const video = document.getElementById("video");
+        const player = new shaka.Player(video);
+
+        // Manejar errores
+        player.addEventListener("error", function (event) {
+          console.error("Error en el reproductor:", event.detail);
+        });
+
+        // Cargar el manifest usando la URL del proxy que viene del backend (pasada como variable)
+        player
+          .load("{{ manifest_url }}")
+          .then(() => {
+            console.log("Video cargado correctamente");
+          })
+          .catch((error) => {
+            console.error("Error al cargar video", error);
+          });
+      });
+    </script>
+  </body>
+</html>

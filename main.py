@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from client import crear_cliente_r2
 from io import BytesIO
 import boto3
+from fastapi import Header
 
 app = FastAPI()
 
@@ -37,13 +38,20 @@ async def ver_pelicula(pelicula: str, request: Request):
 
 # 🟢 Proxy local para evitar CORS con R2
 @app.get("/stream/{pelicula}/{archivo}")
-async def proxy_archivo(pelicula: str, archivo: str):
-    key = f"{pelicula.lower()}/{archivo}"
+async def proxy_archivo(pelicula: str, archivo: str, range: str = Header(None)):
+    key = f"{pelicula}/{archivo}"
     try:
-        objeto = r2.get_object(Bucket=BUCKET_NAME, Key=key)
+        # Construir argumentos para el get_object con rango si existe
+        get_obj_args = {"Bucket": BUCKET_NAME, "Key": key}
+        if range:
+            get_obj_args["Range"] = range
+
+        objeto = r2.get_object(**get_obj_args)
         body = objeto['Body'].read()
-        content_type = objeto.get("ContentType", "application/octet-stream")
-        return StreamingResponse(BytesIO(body), media_type=content_type)
+        content_type = objeto.get('ContentType', "application/octet-stream")
+        status_code = 206 if range else 200  # 206 Partial Content si es con rango
+
+        return StreamingResponse(BytesIO(body), media_type=content_type, status_code=status_code)
     except r2.exceptions.NoSuchKey:
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
     except Exception as e:
